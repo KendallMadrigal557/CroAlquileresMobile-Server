@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const cors = require('cors');
+const multer = require('multer');
 
 const departmentController = require('../controllers/department.controller');
 const multerConfig = require('../config/multerConfig');

@@ -2,7 +2,7 @@ const userSchema = require('../models/user.model');
 
 function validateUserData(req, res, next) {
     const { name, email, password } = req.body;
-
+    console.log(req.body)
     if (!name || !email || !password) {
         return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
     }

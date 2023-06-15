@@ -1,12 +1,12 @@
 const departmentSchema = require('../models/department.model');
 
 function validateDepartmentData(req, res, next) {
-    const { place, price, location, description, status, image } = req.body;
+    const { place, price, location, description, status } = req.body;
     const allowedExtensions = ['jpg', 'png', 'jpeg'];
     const fileExtension = req.file && req.file.originalname.split('.').pop();
-
-    if (!place || !price || !location || !description || !status || !image) {
-        return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
+    
+    if (!place || !price || !location || !description || !status || !req.file) {
+        return res.status(400).json({ message: 'Todos los campos son obligatorios, incluyendo la imagen.' });
     }
 
     if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
