@@ -2,7 +2,6 @@ const Favorite = require("../models/favorite.model");
 
 function validateFavoriteData(req, res, next) {
     const { iduser, idDepartment } = req.body;
-
     if (!iduser || !idDepartment) {
         return res
             .status(400)

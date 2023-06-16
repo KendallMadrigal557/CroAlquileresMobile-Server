@@ -2,7 +2,6 @@ const Review = require('../models/review.model');
 
 function validateReviewData(req, res, next) {
     const { idUser, idDepartment, review, date } = req.body;
-
     if (!idUser || !idDepartment || !review || !date) {
         return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
     }
@@ -26,12 +25,14 @@ function createReview(req, res) {
 }
 
 function getReviews(req, res) {
-    Review.find()
+    const { departmentId } = req.query;
+    Review.find({ idDepartment: departmentId })
         .populate('idUser', 'username') 
         .populate('idDepartment', 'place') 
         .then((data) => res.json(data))
         .catch((error) => res.json({ message: error }));
 }
+
 
 function getReviewById(req, res) {
     const { id } = req.params;
