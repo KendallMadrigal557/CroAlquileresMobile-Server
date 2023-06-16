@@ -25,7 +25,9 @@ function createFavorite(req, res) {
 }
 
 function getFavorites(req, res) {
-    Favorite.find()
+    const { userid } = req.query; 
+
+    Favorite.find({ iduser: userid })
         .then((data) => res.json(data))
         .catch((error) => res.json({ message: error }));
 }
