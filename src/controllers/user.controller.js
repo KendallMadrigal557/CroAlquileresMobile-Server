@@ -6,19 +6,31 @@ function validateUserData(req, res, next) {
         return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
     }
 
+    const nameRegex = /^[a-zA-Zá-úÁ-Ú\s]*$/;
+    if (!nameRegex.test(name)) {
+        return res.status(400).json({ message: 'El nombre no puede contener números.' });
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         return res.status(400).json({ message: 'El correo electrónico no tiene un formato válido.' });
     }
 
+    const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$/;
+    if (!passwordRegex.test(password)) {
+        return res.status(400).json({ message: 'La contraseña debe contener al menos una letra mayúscula, una letra minúscula y un número.' });
+    }
     next();
 }
 
 function createUser(req, res) {
+    const { name, email, password } = req.body;
+    const lowercaseEmail = email.toLowerCase(); 
+
     const user = new userSchema({
-        name: req.body.name,
-        email: req.body.email,
-        password: req.body.password
+        name: name,
+        email: lowercaseEmail, 
+        password: password
     });
 
     user
