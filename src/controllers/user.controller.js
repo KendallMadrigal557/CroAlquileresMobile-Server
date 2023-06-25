@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const userSchema = require('../models/user.model');
 
 function validateUserData(req, res, next) {
@@ -25,12 +26,14 @@ function validateUserData(req, res, next) {
 
 function createUser(req, res) {
     const { name, email, password } = req.body;
-    const lowercaseEmail = email.toLowerCase(); 
+    const lowercaseEmail = email.toLowerCase();
+
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
     const user = new userSchema({
         name: name,
-        email: lowercaseEmail, 
-        password: password
+        email: lowercaseEmail,
+        password: hashedPassword 
     });
 
     user
@@ -62,8 +65,11 @@ function getUserById(req, res) {
 function updateUser(req, res) {
     const { id } = req.params;
     const { name, email, password } = req.body;
+    
+    const hashedPassword = password ? bcrypt.hashSync(password, 10) : null;
+
     userSchema
-        .findByIdAndUpdate(id, { $set: { name, email, password } }, { new: true })
+        .findByIdAndUpdate(id, { $set: { name, email, password: hashedPassword } }, { new: true })
         .then((data) => {
             if (!data) {
                 return res.status(404).json({ message: 'Usuario no encontrado.' });
