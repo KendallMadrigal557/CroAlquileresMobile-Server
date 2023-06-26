@@ -38,13 +38,12 @@ Content-Type: application/json
 DELETE  http://localhost:3001/api/deparment/646e7b0062dfb6bceac86c60 HTTP/1.1
 
 ###
-POST http://localhost:3001/api/user HTTP/1.1
+POST http://localhost:3002/api/user/6499b53c9598ed2b94ff68ff/enable-two-factor HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "John Doe",
-  "email": "johndoe@example.com",
-  "password": "secretpassword"
+  "email": "kendallmadrigal14@gmail.com",
+  "password": "Password12"
 }
 
 ###
