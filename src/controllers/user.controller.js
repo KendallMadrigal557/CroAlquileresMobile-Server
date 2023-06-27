@@ -35,7 +35,7 @@ function validateUserData(req, res, next) {
 }
 
 function createUser(req, res) {
-    const { name, email, password } = req.body;
+    const { name, email, password, passwordDuration } = req.body;
     const lowercaseEmail = email.toLowerCase();
 
     userSchema.findOne({ email: lowercaseEmail })
@@ -51,6 +51,12 @@ function createUser(req, res) {
                 email: lowercaseEmail,
                 password: hashedPassword
             });
+
+            if (passwordDuration === 30 || passwordDuration === 60 || passwordDuration === 90) {
+                user.setPasswordExpiration(passwordDuration);
+            } else {
+                return res.status(400).json({ message: 'Duración de contraseña inválida. Debe ser 30, 60 o 90 días.' });
+            }
 
             user.save()
                 .then((data) => res.json(data))
@@ -84,17 +90,29 @@ function updateUser(req, res) {
     const { id } = req.params;
     const { name, email, password } = req.body;
 
-    const hashedPassword = password ? bcrypt.hashSync(password, 10) : null;
-
-    userSchema
-        .findByIdAndUpdate(id, { $set: { name, email, password: hashedPassword } }, { new: true })
-        .then((data) => {
-            if (!data) {
+    userSchema.findById(id)
+        .then((user) => {
+            if (!user) {
                 return res.status(404).json({ message: 'Usuario no encontrado.' });
             }
-            res.json(data);
+
+            if (password && user.passwordHistory.includes(password)) {
+                return res.status(400).json({ message: 'La contraseña no puede ser igual a las contraseñas anteriores.' });
+            }
+
+            const hashedPassword = password ? bcrypt.hashSync(password, 10) : null;
+
+            userSchema.findByIdAndUpdate(id, { $set: { name, email, password: hashedPassword } }, { new: true })
+                .then((updatedUser) => {
+                    res.json(updatedUser);
+                })
+                .catch((error) => {
+                    res.status(500).json({ message: error.message });
+                });
         })
-        .catch((error) => res.json({ message: error }));
+        .catch((error) => {
+            res.status(500).json({ message: error.message });
+        });
 }
 
 function deleteUser(req, res) {
@@ -135,7 +153,37 @@ async function enableTwoFactor(req, res) {
     }
 }
 
+function sendUnlockAccountEmail(email, unlockCode) {
+    const mailOptions = {
+        from: 'kendallmadrigal14@gmail.com',
+        to: email,
+        subject: 'CroAlquileres - Desbloqueo de cuenta',
+        html: `
+            <div style="background-color: #f2f2f2; padding: 20px; font-family: Arial, sans-serif; width: 572px; height: 297px; margin: 0 auto; text-align: center;">
+            <h2 style="color: #333333;">CroAlquileres</h2>
+                <p>Hola,</p>
+                <p>Tu cuenta de CroAlquileres ha sido bloqueada por motivos de seguridad.</p>
+                <p>Para desbloquear tu cuenta, utiliza el siguiente código de desbloqueo:</p>
+                <br>
+                <h3 style="background-color: #ebebeb; padding: 10px; display: inline-block;">${unlockCode}</h3>
+                <br>
+                <p>Ingresa este código en la aplicación para desbloquear tu cuenta y restablecer tu acceso.</p>
+                <br>
+                <br>
+                <p>Gracias,</p>
+                <p>El equipo de CroAlquileres</p>
+            </div>
+        `
+    };
 
+    transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+            console.log('Error al enviar el correo electrónico');
+        } else {
+            console.log('Correo electrónico enviado');
+        }
+    });
+}
 function generateVerificationCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -188,6 +236,11 @@ async function loginUser(req, res) {
             return res.status(401).json({ message: 'Credenciales inválidas.' });
         }
 
+        const currentDate = new Date();
+        if (user.passwordExpirationDate && currentDate > user.passwordExpirationDate) {
+            return res.status(401).json({ message: 'La contraseña ha expirado. Por favor, cambie su contraseña.' });
+        }
+
         if (user.isTwoFactorEnabled) {
             if (!twoFactorCode) {
                 return res.status(400).json({ message: 'Se requiere el código de verificación de doble factor.' });
@@ -214,5 +267,6 @@ module.exports = {
     updateUser,
     deleteUser,
     enableTwoFactor,
-    loginUser
+    loginUser,
+    sendUnlockAccountEmail
 };

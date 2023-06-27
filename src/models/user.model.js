@@ -4,8 +4,17 @@ const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true },
     password: { type: String, required: true },
+    passwordHistory: [{ type: String }],
     isTwoFactorEnabled: { type: Boolean, default: false },
-    verificationCode: { type: String }
+    verificationCode: { type: String },
+    isAccountLocked: { type: Boolean, default: false },
+    passwordExpirationDate: { type: Date }
 });
+
+userSchema.methods.setPasswordExpiration = function(days) {
+    const currentDate = new Date();
+    const expirationDate = new Date(currentDate.getTime() + days * 24 * 60 * 60 * 1000);
+    this.passwordExpirationDate = expirationDate;
+};
 
 module.exports = mongoose.model('User', userSchema);

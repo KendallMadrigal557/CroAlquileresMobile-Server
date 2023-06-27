@@ -13,5 +13,6 @@ router.put('/user/:id', userController.validateUserData, userController.updateUs
 router.delete('/user/:id', userController.deleteUser);
 router.post('/user/:id/enable-two-factor', userController.enableTwoFactor); 
 router.post('/login', multer().none(), userController.loginUser);
+router.post('/user/:id/password-expiration', userController.setPasswordExpiration);
 
 module.exports = router;
