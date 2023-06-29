@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
     isTwoFactorEnabled: { type: Boolean, default: false },
     verificationCode: { type: String },
     isAccountLocked: { type: Boolean, default: false },
+    loginAttempts: { type: Number, default: 0 },
     passwordExpirationDate: { type: Date }
 });
 
