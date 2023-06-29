@@ -20,7 +20,7 @@ app.use('/api', userRouter);
 app.use('/api', reviewRouter);
 app.use('/api', faqRoutes);
 app.use('/api', favoriteRouter);
-app.use('/api/', auditLogRouter)
+app.use('/api/', auditLogRouter);
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
