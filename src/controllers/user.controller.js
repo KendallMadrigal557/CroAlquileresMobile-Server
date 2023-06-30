@@ -7,7 +7,7 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: 'kendallmadrigal14@gmail.com',
-        pass: ''
+        pass: 'vscfaglierapjsyq'
     }
 });
 
@@ -227,7 +227,7 @@ async function loginUser(req, res) {
             if (user.loginAttempts >= 5) {
                 user.isAccountLocked = true;
                 await user.save();
-                return res.status(401).json({ message: 'La cuenta está bloqueada. Comunícate con el administrador.' });
+                return res.status(401).json({ message: 'La cuenta está bloqueada. or favor, cambie su contraseña para desbloquear su cuenta.' });
             }
 
             return res.status(401).json({ message: 'Credenciales inválidas.' });
@@ -267,10 +267,20 @@ async function changePassword(req, res) {
         if (verificationCode !== user.verificationCode) {
             return res.status(401).json({ message: 'Código de verificación inválido.' });
         }
+        const isPasswordUsedBefore = user.passwordHistory.some((prevPassword) => {
+            return bcrypt.compareSync(password, prevPassword);
+        });
+
+        if (isPasswordUsedBefore) {
+            return res.status(400).json({ message: 'La contraseña no puede ser igual o similar a las contraseñas anteriores.' });
+        }
 
         const hashedPassword = bcrypt.hashSync(password, 10);
+        user.passwordHistory.push(user.password); 
         user.password = hashedPassword;
+        user.loginAttempts = 0;
         user.verificationCode = '';
+        user.isAccountLocked = false; 
 
         await user.save();
 
@@ -279,37 +289,44 @@ async function changePassword(req, res) {
         res.status(500).json({ message: error.message });
     }
 }
-async function sendVerificationCodePassword(email,verificationCode ) {
+
+
+async function sendVerificationCodePassword(email, verificationCode) {
     const mailOptions = {
         from: 'kendallmadrigal14@gmail.com',
         to: email,
         subject: 'CroAlquileres - Código de verificación',
         html: `
-            <div style="background-color: #f2f2f2; padding: 20px; font-family: Arial, sans-serif; width: 572px; height: 297px; margin: 0 auto; text-align: center;">
+        <div style="background-color: #f2f2f2; padding: 20px; font-family: Arial, sans-serif; width: 572px; height: 297px; margin: 0 auto; text-align: center;">
             <h2 style="color: #333333;">CroAlquileres</h2>
-                <p>Hola,</p>
-                <p>Aquí tienes tu código de verificación: <strong>${verificationCode}</strong></p>
-                <p>Utiliza este código para cambiar tu contraseña.</p>
-                <br>
-                <p>Gracias,</p>
-                <p>El equipo de CroAlquileres</p>
-            </div>
+            <p>Hola,</p>
+            <p>Aquí tienes tu código de verificación: <strong>${verificationCode}</strong></p>
+            <p>Utiliza este código para cambiar tu contraseña.</p>
+            <br>
+            <p>Gracias,</p>
+            <p>El equipo de CroAlquileres</p>
+        </div>
         `
     };
 
-    await transporter.sendMail(mailOptions, function (error, info) {
+    await transporter.sendMail(mailOptions, async function (error, info) {
         if (error) {
             console.log('Error al enviar el correo electrónico');
         } else {
             console.log('Correo electrónico enviado');
+            try {
+                const user = await userSchema.findOneAndUpdate({ email }, { verificationCode }, { new: true });
+            } catch (error) {
+            }
         }
     });
 }
+
 async function sendMailPassword(req, res, next) {
     const { email } = req.body;
     const verificationCode = generateVerificationCode();
     await sendVerificationCodePassword(email, verificationCode)
-    
+
 }
 module.exports = {
     validateUserData,
@@ -320,7 +337,7 @@ module.exports = {
     deleteUser,
     enableTwoFactor,
     loginUser,
-    verifyTwoFactorCode, 
-    changePassword, 
+    verifyTwoFactorCode,
+    changePassword,
     sendMailPassword
 };

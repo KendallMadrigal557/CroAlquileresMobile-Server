@@ -15,5 +15,6 @@ router.post('/user/:id/enable-two-factor', userController.enableTwoFactor);
 router.post('/login', multer().none(), userController.loginUser);
 router.post('/verify-two-factor', multer().none(), userController.verifyTwoFactorCode);
 router.post('/send-verification-code', multer().none(), userController.sendMailPassword);
+router.post('/change-password', multer().none(), userController.changePassword);
 
 module.exports = router;
