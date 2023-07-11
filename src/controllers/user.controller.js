@@ -155,7 +155,15 @@ async function enableTwoFactor(req, res) {
 
 
 function generateVerificationCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var code = '';
+
+    for (var i = 0; i < 6; i++) {
+        var randomIndex = Math.floor(Math.random() * characters.length);
+        code += characters[randomIndex];
+    }
+
+    return code;
 }
 
 function sendVerificationCodeByEmail(email, verificationCode) {
@@ -295,7 +303,7 @@ async function sendVerificationCodePassword(email, verificationCode) {
     const mailOptions = {
         from: 'kendallmadrigal14@gmail.com',
         to: email,
-        subject: 'CroAlquileres - Código de verificación',
+        subject: 'CroAlquileres - Código de verificación de cambio de contraseña',
         html: `
         <div style="background-color: #f2f2f2; padding: 20px; font-family: Arial, sans-serif; width: 572px; height: 297px; margin: 0 auto; text-align: center;">
             <h2 style="color: #333333;">CroAlquileres</h2>
