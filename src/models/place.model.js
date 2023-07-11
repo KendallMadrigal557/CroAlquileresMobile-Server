@@ -14,4 +14,5 @@ const placeSchema = new mongoose.Schema({
     cantones: [cantonSchema],
 });
 
+
 module.exports = mongoose.model('Place', placeSchema);
