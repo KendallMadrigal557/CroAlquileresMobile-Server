@@ -7,7 +7,7 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: 'kendallmadrigal14@gmail.com',
-        pass: ''
+        pass: 'vscfaglierapjsyq'
     }
 });
 
@@ -153,39 +153,17 @@ async function enableTwoFactor(req, res) {
     }
 }
 
-function sendUnlockAccountEmail(email, unlockCode) {
-    const mailOptions = {
-        from: 'kendallmadrigal14@gmail.com',
-        to: email,
-        subject: 'CroAlquileres - Desbloqueo de cuenta',
-        html: `
-            <div style="background-color: #f2f2f2; padding: 20px; font-family: Arial, sans-serif; width: 572px; height: 297px; margin: 0 auto; text-align: center;">
-            <h2 style="color: #333333;">CroAlquileres</h2>
-                <p>Hola,</p>
-                <p>Tu cuenta de CroAlquileres ha sido bloqueada por motivos de seguridad.</p>
-                <p>Para desbloquear tu cuenta, utiliza el siguiente código de desbloqueo:</p>
-                <br>
-                <h3 style="background-color: #ebebeb; padding: 10px; display: inline-block;">${unlockCode}</h3>
-                <br>
-                <p>Ingresa este código en la aplicación para desbloquear tu cuenta y restablecer tu acceso.</p>
-                <br>
-                <br>
-                <p>Gracias,</p>
-                <p>El equipo de CroAlquileres</p>
-            </div>
-        `
-    };
 
-    transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-            console.log('Error al enviar el correo electrónico');
-        } else {
-            console.log('Correo electrónico enviado');
-        }
-    });
-}
 function generateVerificationCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var code = '';
+
+    for (var i = 0; i < 6; i++) {
+        var randomIndex = Math.floor(Math.random() * characters.length);
+        code += characters[randomIndex];
+    }
+
+    return code;
 }
 
 function sendVerificationCodeByEmail(email, verificationCode) {
@@ -215,10 +193,27 @@ function sendVerificationCodeByEmail(email, verificationCode) {
     });
 }
 
+async function verifyTwoFactorCode(email, twoFactorCode) {
+    try {
+        const user = await userSchema.findOne({ email: email });
+
+        if (!user) {
+            throw new Error('Usuario no encontrado.');
+        }
+
+        if (twoFactorCode !== user.verificationCode) {
+            throw new Error('Código de verificación de doble factor inválido.');
+        }
+
+        return user;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
 
 
 async function loginUser(req, res) {
-    const { email, password, twoFactorCode } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ message: 'El correo electrónico y la contraseña son obligatorios.' });
@@ -231,34 +226,116 @@ async function loginUser(req, res) {
             return res.status(404).json({ message: 'Usuario no encontrado.' });
         }
 
-        const passwordMatch = bcrypt.compareSync(password, user.password);
+        const passwordMatch = bcrypt.compareSync(password, user.password)
+
         if (!passwordMatch) {
+            user.loginAttempts += 1;
+            await user.save();
+
+            if (user.loginAttempts >= 5) {
+                user.isAccountLocked = true;
+                await user.save();
+                return res.status(401).json({ message: 'La cuenta está bloqueada. or favor, cambie su contraseña para desbloquear su cuenta.' });
+            }
+
             return res.status(401).json({ message: 'Credenciales inválidas.' });
         }
-
         const currentDate = new Date();
         if (user.passwordExpirationDate && currentDate > user.passwordExpirationDate) {
             return res.status(401).json({ message: 'La contraseña ha expirado. Por favor, cambie su contraseña.' });
         }
 
-        if (user.isTwoFactorEnabled) {
-            if (!twoFactorCode) {
-                return res.status(400).json({ message: 'Se requiere el código de verificación de doble factor.' });
-            }
-
-            if (twoFactorCode !== user.verificationCode) {
-                return res.status(401).json({ message: 'Código de verificación de doble factor inválido.' });
-            }
-        }
-
         const token = jwt.sign({ userId: user._id }, 'secretKey');
 
-        res.json({ token: token });
+        const verificationCode = generateVerificationCode();
+        await sendVerificationCodeByEmail(email, verificationCode);
+
+        user.verificationCode = verificationCode;
+        await user.save();
+
+        res.json({ success: true, user: user, token: token });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+async function changePassword(req, res) {
+    const { email, password, verificationCode } = req.body;
+
+    if (!email || !password || !verificationCode) {
+        return res.status(400).json({ message: 'El correo electrónico, contraseña y código de verificación son obligatorios.' });
+    }
+
+    try {
+        const user = await userSchema.findOne({ email: email });
+
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado.' });
+        }
+
+        if (verificationCode !== user.verificationCode) {
+            return res.status(401).json({ message: 'Código de verificación inválido.' });
+        }
+        const isPasswordUsedBefore = user.passwordHistory.some((prevPassword) => {
+            return bcrypt.compareSync(password, prevPassword);
+        });
+
+        if (isPasswordUsedBefore) {
+            return res.status(400).json({ message: 'La contraseña no puede ser igual o similar a las contraseñas anteriores.' });
+        }
+
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        user.passwordHistory.push(user.password); 
+        user.password = hashedPassword;
+        user.loginAttempts = 0;
+        user.verificationCode = '';
+        user.isAccountLocked = false; 
+
+        await user.save();
+
+        res.json({ success: true, message: 'Contraseña cambiada exitosamente.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 }
 
+
+async function sendVerificationCodePassword(email, verificationCode) {
+    const mailOptions = {
+        from: 'kendallmadrigal14@gmail.com',
+        to: email,
+        subject: 'CroAlquileres - Código de verificación de cambio de contraseña',
+        html: `
+        <div style="background-color: #f2f2f2; padding: 20px; font-family: Arial, sans-serif; width: 572px; height: 297px; margin: 0 auto; text-align: center;">
+            <h2 style="color: #333333;">CroAlquileres</h2>
+            <p>Hola,</p>
+            <p>Aquí tienes tu código de verificación: <strong>${verificationCode}</strong></p>
+            <p>Utiliza este código para cambiar tu contraseña.</p>
+            <br>
+            <p>Gracias,</p>
+            <p>El equipo de CroAlquileres</p>
+        </div>
+        `
+    };
+
+    await transporter.sendMail(mailOptions, async function (error, info) {
+        if (error) {
+            console.log('Error al enviar el correo electrónico');
+        } else {
+            console.log('Correo electrónico enviado');
+            try {
+                const user = await userSchema.findOneAndUpdate({ email }, { verificationCode }, { new: true });
+            } catch (error) {
+            }
+        }
+    });
+}
+
+async function sendMailPassword(req, res, next) {
+    const { email } = req.body;
+    const verificationCode = generateVerificationCode();
+    await sendVerificationCodePassword(email, verificationCode)
+
+}
 module.exports = {
     validateUserData,
     createUser,
@@ -268,5 +345,7 @@ module.exports = {
     deleteUser,
     enableTwoFactor,
     loginUser,
-    sendUnlockAccountEmail
+    verifyTwoFactorCode,
+    changePassword,
+    sendMailPassword
 };
