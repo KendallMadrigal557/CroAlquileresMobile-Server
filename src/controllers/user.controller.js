@@ -12,8 +12,8 @@ const transporter = nodemailer.createTransport({
 });
 
 function validateUserData(req, res, next) {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
+    const { name, email, password, provincia, canton, distrito } = req.body;
+    if (!name || !email || !password || !provincia || !canton || !distrito) {
         return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
     }
 
@@ -35,7 +35,7 @@ function validateUserData(req, res, next) {
 }
 
 function createUser(req, res) {
-    const { name, email, password, passwordDuration } = req.body;
+    const { name, email, password, passwordDuration, provincia, canton, distrito } = req.body;
     const lowercaseEmail = email.toLowerCase();
 
     userSchema.findOne({ email: lowercaseEmail })
@@ -49,7 +49,10 @@ function createUser(req, res) {
             const user = new userSchema({
                 name: name,
                 email: lowercaseEmail,
-                password: hashedPassword
+                password: hashedPassword,
+                provincia: provincia,
+                canton: canton,
+                distrito: distrito
             });
 
             if (passwordDuration === 30 || passwordDuration === 60 || passwordDuration === 90) {
@@ -88,7 +91,7 @@ function getUserById(req, res) {
 
 function updateUser(req, res) {
     const { id } = req.params;
-    const { name, email, password } = req.body;
+    const { name, email, password, provincia, canton, distrito } = req.body;
 
     userSchema.findById(id)
         .then((user) => {
@@ -102,7 +105,7 @@ function updateUser(req, res) {
 
             const hashedPassword = password ? bcrypt.hashSync(password, 10) : null;
 
-            userSchema.findByIdAndUpdate(id, { $set: { name, email, password: hashedPassword } }, { new: true })
+            userSchema.findByIdAndUpdate(id, { $set: { name, email, password: hashedPassword, provincia, canton, distrito } }, { new: true })
                 .then((updatedUser) => {
                     res.json(updatedUser);
                 })
@@ -127,6 +130,7 @@ function deleteUser(req, res) {
         })
         .catch((error) => res.json({ message: error }));
 }
+
 
 async function enableTwoFactor(req, res) {
     const { id } = req.params;
