@@ -1,11 +1,11 @@
 const departmentSchema = require('../models/department.model');
 
 function validateDepartmentData(req, res, next) {
-    const { place, price, location, description, status } = req.body;
+    const { place, price, provincia, canton, distrito, description, status } = req.body;
     const allowedExtensions = ['jpg', 'png', 'jpeg'];
     const fileExtension = req.file && req.file.originalname.split('.').pop();
     
-    if (!place || !price || !location || !description || !status || !req.file) {
+    if (!place || !price || !provincia || !canton || !distrito || !description || !status || !req.file) {
         return res.status(400).json({ message: 'Todos los campos son obligatorios, incluyendo la imagen.' });
     }
 
@@ -17,11 +17,13 @@ function validateDepartmentData(req, res, next) {
 }
 
 function createDepartment(req, res) {
-    const { place, price, location, description, status } = req.body;
+    const { place, price, provincia, canton, distrito, description, status } = req.body;
     const department = new departmentSchema({
         place,
         price,
-        location,
+        provincia,
+        canton,
+        distrito,
         description,
         status,
         image: req.file.filename
@@ -56,9 +58,9 @@ function getDepartmentById(req, res) {
 
 function updateDepartment(req, res) {
     const { id } = req.params;
-    const { place, price, location, description, status } = req.body;
+    const { place, price, provincia, canton, distrito, description, status } = req.body;
     departmentSchema
-        .findByIdAndUpdate(id, { $set: { place, price, location, description, status } }, { new: true })
+        .findByIdAndUpdate(id, { $set: { place, price, provincia, canton, distrito, description, status } }, { new: true })
         .then((data) => {
             if (!data) {
                 return res.status(404).json({ message: 'Departamento no encontrado.' });
