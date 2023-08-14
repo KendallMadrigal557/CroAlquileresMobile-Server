@@ -26,7 +26,12 @@ function createDepartment(req, res) {
         distrito,
         description,
         status,
-        image: req.file.filename
+        image: req.file.filename,
+        image2: req.file.filename,
+        image3: req.file.filename,
+        rooms,
+        capacity,
+        isOccupied
     });
 
     department
