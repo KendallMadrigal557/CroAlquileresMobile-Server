@@ -10,7 +10,6 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + '-' + file.originalname); 
   }
 });
-const upload = multer({ storage: storage });
 
 const fileFilter = (req, file, cb) => {
   const allowedExtensions = ['jpg', 'png', 'jpeg'];
@@ -19,14 +18,13 @@ const fileFilter = (req, file, cb) => {
   if (allowedExtensions.includes(fileExtension)) {
     cb(null, true); 
   } else {
-    cb(new Error('El formato del archivo no es válido. Se permiten solo archivos JPG, PNG y JPEG.'), false); // Rechaza el archivo con el error
+    cb(new Error('El formato del archivo no es válido. Se permiten solo archivos JPG, PNG y JPEG.'), false);
   }
 };
 
-
-const multerConfig = multer({ 
+const upload = multer({ 
   storage: storage,
   fileFilter: fileFilter
 });
 
-module.exports = multerConfig;
+module.exports = upload;

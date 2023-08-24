@@ -8,10 +8,10 @@ const multerConfig = require('../config/multerConfig');
 
 router.use(cors());
 
-router.post('/department', multerConfig.single('image'), departmentController.validateDepartmentData, departmentController.createDepartment);
+router.post('/department', multerConfig.array('images', 3), departmentController.createDepartment);
 router.get('/department', departmentController.getDepartments);
 router.get('/department/:id', departmentController.getDepartmentById);
-router.put('/department/:id', departmentController.validateDepartmentData, departmentController.updateDepartment);
+router.put('/department/:id', departmentController.changeOccupiedStatus);
 router.delete('/department/:id', departmentController.deleteDepartment);
 
 module.exports = router;
