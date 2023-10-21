@@ -9,7 +9,10 @@ const userSchema = new mongoose.Schema({
     verificationCode: { type: String },
     isAccountLocked: { type: Boolean, default: false },
     loginAttempts: { type: Number, default: 0 },
-    passwordExpirationDate: { type: Date }
+    passwordExpirationDate: { type: Date },
+    provincia: { type: String, required: true },
+    canton: { type: String, required: true },
+    distrito: { type: String, required: true }
 });
 
 userSchema.methods.setPasswordExpiration = function(days) {
